@@ -1,103 +1,136 @@
-import Image from "next/image";
+'use client';
+
+import { TodoList } from '@/components/TodoList';
+import { useTodoStore } from '@/store/useTodoStore';
+import { Todo } from '@/types/todo';
+import { useEffect, useState } from 'react';
+
+interface SavedTodo extends Omit<Todo, 'createdAt'> {
+  createdAt: string;
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [isLoading, setIsLoading] = useState(true);
+  const { initializeTodos, filter, setFilter, todos } = useTodoStore();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const loadTodos = () => {
+      try {
+        const savedTodos = localStorage.getItem('todos');
+        if (savedTodos) {
+          const todos = JSON.parse(savedTodos) as SavedTodo[];
+          const parsedTodos = todos.map((todo) => ({
+            ...todo,
+            createdAt: new Date(todo.createdAt),
+          }));
+          initializeTodos(parsedTodos);
+        }
+      } catch (error) {
+        console.error('Failed to load todos:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTodos();
+  }, [initializeTodos]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-orange-500" />
+      </div>
+    );
+  }
+
+  const activeTodos = todos.filter((todo) => !todo.completed).length;
+  const completedTodos = todos.filter((todo) => todo.completed).length;
+
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100/50 to-white">
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-orange-600 mb-6">待辦事項</h1>
+
+          <div className="flex justify-center gap-2">
+            {[
+              { id: 'all', label: '全部', count: todos.length },
+              { id: 'active', label: '進行中', count: activeTodos },
+              { id: 'completed', label: '已完成', count: completedTodos },
+            ].map(({ id, label, count }) => (
+              <button
+                key={id}
+                onClick={() => setFilter(id as 'all' | 'active' | 'completed')}
+                className={`
+                  min-w-[100px] px-4 py-2
+                  rounded-full text-sm font-medium
+                  ${
+                    filter === id
+                      ? 'bg-orange-400 text-white'
+                      : 'bg-white text-orange-600 border border-orange-200'
+                  }
+                `}
+              >
+                {label}
+                <span className={`ml-1 ${filter === id ? 'text-white/80' : 'text-orange-400'}`}>
+                  {count}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const form = e.target as HTMLFormElement;
+            const input = form.elements.namedItem('todo') as HTMLInputElement;
+            if (input.value.trim()) {
+              useTodoStore.getState().addTodo(input.value.trim());
+              input.value = '';
+            }
+          }}
+          className="relative mb-8"
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+          <input
+            type="text"
+            name="todo"
+            placeholder="新增待辦事項..."
+            className="
+              w-full px-6 py-4 pr-16 
+              bg-white rounded-full
+              border border-orange-200
+              placeholder-orange-300 text-orange-700
+              focus:outline-none focus:ring-2 
+              focus:ring-orange-300
+            "
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+          <button
+            type="submit"
+            className="
+              absolute right-3 top-1/2 -translate-y-1/2 
+              p-2.5 rounded-full
+              bg-orange-400 text-white
+              focus:outline-none focus:ring-2 
+              focus:ring-orange-300
+            "
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+          </button>
+        </form>
+
+        <div className="space-y-3">
+          <TodoList />
+        </div>
+      </div>
+    </main>
   );
 }
