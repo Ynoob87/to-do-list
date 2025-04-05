@@ -12,7 +12,7 @@
 
 ## 技術棧
 
-- Next.js 14
+- Next.js 15
 - TypeScript
 - Tailwind CSS
 - Zustand (狀態管理)
