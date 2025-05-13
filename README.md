@@ -17,26 +17,6 @@
 - Tailwind CSS
 - Zustand (狀態管理)
 
-## 開始使用
-
-1. 安裝依賴：
-
-```bash
-npm install
-# 或
-yarn install
-```
-
-2. 啟動開發伺服器：
-
-```bash
-npm run dev
-# 或
-yarn dev
-```
-
-3. 開啟瀏覽器訪問 `http://localhost:3000`
-
 ## 專案結構
 
 ```
